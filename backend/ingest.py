@@ -17,16 +17,24 @@ def handle_business_partner_addresses(record):
     """, (record.get("businessPartner"), record.get("cityName"), record.get("country"), record.get("streetName")))
 
 def handle_customer_company_assignments(record):
+    # FIXED: Check for 'customer' key first, fallback to 'businessPartner'
+    cust_id = record.get("customer") or record.get("businessPartner")
+    if not cust_id: return # Skip if somehow both are missing
+    
     db.query("""
         INSERT INTO customers (id, companyCode) VALUES (%s, %s)
         ON CONFLICT (id) DO UPDATE SET companyCode=EXCLUDED.companyCode;
-    """, (record.get("businessPartner"), record.get("companyCode")))
+    """, (cust_id, record.get("companyCode")))
 
 def handle_customer_sales_area_assignments(record):
+    # FIXED: Check for 'customer' key first, fallback to 'businessPartner'
+    cust_id = record.get("customer") or record.get("businessPartner")
+    if not cust_id: return # Skip if somehow both are missing
+    
     db.query("""
         INSERT INTO customers (id, salesOrg, distChannel) VALUES (%s, %s, %s)
         ON CONFLICT (id) DO UPDATE SET salesOrg=EXCLUDED.salesOrg, distChannel=EXCLUDED.distChannel;
-    """, (record.get("businessPartner"), record.get("salesOrganization"), record.get("distributionChannel")))
+    """, (cust_id, record.get("salesOrganization"), record.get("distributionChannel")))
 
 def handle_products(record):
     db.query("""
@@ -168,9 +176,11 @@ def ingest_folder(folder_name, folder_path):
         
         with open(file_path, "r", encoding="utf-8") as f:
             for line_num, line in enumerate(f, 1):
-                # --- SPEED CAP: Remove this if you want to ingest millions of rows ---
-                if line_num > 50: break 
-                
+                # --- SPEED CAP: Remove 
+                if ingested >= 150:
+                    break
+
+
                 line = line.strip()
                 if not line: continue
                 try:
