@@ -17,6 +17,9 @@ import ReactFlow, {
 import "reactflow/dist/style.css";
 import axios from "axios";
 
+// This tells the app to use the cloud URL if it exists, otherwise fallback to local!
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
+
 type Message = { role: "user" | "agent"; content: string };
 
 const COLOR_MAP: Record<string, string> = {
@@ -58,7 +61,8 @@ function GraphDashboard() {
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        const res = await axios.get("http://127.0.0.1:8000/initial-graph");
+        // Updated to use dynamic URL
+        const res = await axios.get(`${API_BASE_URL}/initial-graph`);
         if (res.data.data && res.data.data.length > 0) {
           integrateDataToGraph(res.data.data, false);
         }
@@ -192,7 +196,8 @@ function GraphDashboard() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/query", { message: userMsg });
+      // Updated to use dynamic URL
+      const res = await axios.post(`${API_BASE_URL}/query`, { message: userMsg });
       setMessages((prev) => [...prev, { role: "agent", content: res.data.explanation }]);
       integrateDataToGraph(res.data.data, true);
     } catch (error) {
@@ -220,9 +225,6 @@ function GraphDashboard() {
         >
           <Background color="#e2e8f0" gap={20} variant={BackgroundVariant.Dots} />
           <Controls />
-
-          {/* LEGEND */}
-
         </ReactFlow>
 
         {selectedNodeData && (
@@ -274,7 +276,7 @@ function GraphDashboard() {
                 {msg.role === "agent" ? "System Agent" : "Authorized User"}
               </span>
               <div
-                className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${msg.role === "user"
+                className={`p-4 rounded-2xl text-sm leading-relaxed shadow-sm whitespace-pre-wrap ${msg.role === "user"
                   ? "bg-slate-900 text-white rounded-tr-none"
                   : "bg-slate-100 text-slate-800 border border-slate-200 rounded-tl-none"
                   }`}
